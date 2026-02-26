@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Stability Self-Check</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --muted:#a9b3d1;
+    --text:#eef2ff;
+    --accent:#3FC2C2;
+    --accent2:#63F8EF;
+    --line:rgba(255,255,255,.12);
+    --paper:#ffffff;
+    --ink:#0a1020;
+    --ink2:#1c2440;
+    --danger:#ff6b6b;
+  }
+  body{
+    margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 20% 0%, rgba(63,194,194,.18), transparent 60%),
+      radial-gradient(900px 500px at 100% 10%, rgba(99,248,239,.14), transparent 55%),
+      var(--bg);
+    color:var(--text);
+  }
+  .wrap{max-width:1020px;margin:0 auto;padding:20px 14px 44px;}
+  .hero{
+    padding:18px 16px;border:1px solid var(--line);border-radius:18px;
+    background:linear-gradient(180deg,rgba(17,26,51,.92),rgba(17,26,51,.72));
+  }
+  h1{margin:0 0 6px;font-size:22px;}
+  .sub{margin:0;color:var(--muted);line-height:1.4;}
+
+  .card{
+    margin-top:14px;border:1px solid var(--line);border-radius:18px;
+    background:rgba(17,26,51,.72);overflow:hidden;
+  }
+  .cardHeader{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px 14px;border-bottom:1px solid var(--line);
+  }
+  .cardHeader h2{margin:0;font-size:16px;}
+  .small{font-size:12px;color:var(--muted);line-height:1.35;}
+  .section{padding:14px;}
+
+  .actions{
+    display:flex;gap:10px;flex-wrap:wrap;
+    padding:12px 14px;border-top:1px solid var(--line);
+    background:rgba(0,0,0,.14);
+    align-items:center;
+  }
+  button{
+    appearance:none;border:0;border-radius:14px;
+    padding:10px 14px;cursor:pointer;font-weight:850;
+    background:linear-gradient(90deg,rgba(63,194,194,.95),rgba(99,248,239,.92));
+    color:#001018;
+  }
+  button.secondary{
+    background:transparent;border:1px solid rgba(255,255,255,.18);
+    color:var(--text);font-weight:750;
+  }
+  .err{color:var(--danger);font-size:13px;margin-left:6px;}
+
+  /* Paper (white printable) */
+  .paper{
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:16px;
+    padding:18px;
+    border:1px solid rgba(255,255,255,.10);
+  }
+  .paper h3{margin:0 0 6px;font-size:18px;color:var(--ink);}
+  .lead{margin:0 0 10px;color:var(--ink2);line-height:1.45;font-size:13px;}
+
+  .anchorBar{
+    margin-top:12px;
+    border:1px solid #d8deef;border-radius:12px;background:#f7f9ff;
+    padding:12px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+  }
+  .anchorLeft{min-width:240px;flex:1;}
+  .anchorLabel{font-weight:950;font-size:13px;margin:0 0 6px;color:var(--ink);}
+  .anchorSelect{
+    width:100%;border:2px solid #0f172a;border-radius:10px;
+    padding:10px;font-size:14px;outline:none;background:#fff;
+  }
+  .anchorValue{margin-top:8px;font-size:13px;color:var(--ink);font-weight:950;}
+  .anchorValue .chosen{
+    font-weight:1000;
+    padding:6px 10px;
+    border-radius:999px;
+    display:inline-block;
+    border:2px solid rgba(63,194,194,.55);
+    background:rgba(63,194,194,.16);
+    vertical-align:middle;
+  }
+  .anchorNote{color:var(--ink2);font-size:12px;line-height:1.35;max-width:420px;}
+
+  .ratingCard{
+    margin-top:12px;
+    border:1px solid #d8deef;
+    border-radius:12px;
+    background:#ffffff;
+    padding:12px 14px;
+  }
+  .ratingCard h4{margin:0 0 6px;font-size:14px;color:var(--ink);}
+  .ratingCard .hint{margin:0 0 10px;color:var(--ink2);font-size:12.5px;line-height:1.45;}
+
+  .stmt{
+    border:1px solid #e3e8f6;
+    border-radius:12px;
+    padding:12px;
+    background:#ffffff;
+    margin-bottom:10px;
+  }
+  .stmtTop{
+    display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;
+  }
+  .stmtNum{
+    font-weight:1000;
+    color:var(--ink);
+    font-size:12px;
+    letter-spacing:.3px;
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid #d8deef;
+    background:#f7f9ff;
+    display:inline-block;
+    white-space:nowrap;
+  }
+  .stmtText{
+    flex:1;
+    min-width:220px;
+    color:var(--ink);
+    font-size:13.5px;
+    font-weight:850;
+    line-height:1.35;
+    margin:0;
+  }
+
+  /* Chips: labels shown, values stored internally */
+  .chips{ display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px; }
+  @media (min-width: 520px){ .chips{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 820px){ .chips{ grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+  .chip{
+    border:2px solid #0f172a22;
+    border-radius:12px;
+    padding:12px 10px;
+    text-align:center;
+    cursor:pointer;
+    user-select:none;
+    font-weight:950;
+    color:var(--ink2);
+    background:#fff;
+    transition: transform .06s ease, border-color .15s ease, background .15s ease;
+    min-height:48px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;
+    line-height:1.25;
+  }
+  input[type="radio"]{display:none;}
+  input[type="radio"]:checked + .chip{
+    border-color: rgba(63,194,194,.95);
+    background: rgba(63,194,194,.16);
+    color: var(--ink);
+  }
+  .chip:active{transform:scale(.99);}
+
+  .result{
+    display:none;
+    margin-top:12px;
+    border-radius:14px;
+    border:1px solid #d8deef;
+    background:#f6fffe;
+    padding:12px 14px;
+  }
+  .result h4{margin:0 0 6px;font-size:14px;color:var(--ink);}
+  .kpis{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-top:8px;}
+  .kpi{
+    border:1px solid #d8deef;
+    background:#fff;
+    border-radius:12px;
+    padding:10px 12px;
+    min-width:180px;
+    flex:1;
+  }
+  .kpi .val{font-weight:1000;font-size:20px;color:var(--ink);}
+  .kpi .meta{font-size:12px;color:var(--ink2);margin-top:2px;}
+  .badge{
+    display:inline-block;
+    margin-top:6px;
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid rgba(15,23,42,.18);
+    font-size:12px;
+    font-weight:950;
+    color:var(--ink2);
+    background:#fff;
+  }
+  .badge.high{border-color:rgba(126,231,135,.6); color:#0d6b2a;}
+  .badge.mid{border-color:rgba(255,204,102,.7); color:#7a4b00;}
+  .badge.low{border-color:rgba(255,107,107,.7); color:#7a1010;}
+
+  .box{
+    margin-top:12px;
+    padding:12px 14px;
+    border-left:5px solid var(--accent);
+    background:#f6fffe;
+    border-radius:12px;
+    border:1px solid #cfeeee;
+    color:var(--ink2);
+    font-size:13px;
+    line-height:1.45;
+  }
+  .quote{
+    margin-top:12px;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid #d8deef;
+    background:#ffffff;
+    color:var(--ink2);
+    font-size:13px;
+    line-height:1.45;
+  }
+  .quote b{color:var(--ink);}
+
+  .footer{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid #d8deef;
+    background:#ffffff;
+    color:var(--ink2);
+    font-size:12px;
+    line-height:1.45;
+  }
+  .footer b{color:var(--ink);}
+
+  .previewWrap{display:none;margin-top:12px;}
+  .previewTitle{margin:0 0 8px;font-size:12px;color:var(--muted);font-weight:900;}
+  .previewImg{width:100%;height:auto;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.10);}
+
+  @media print{
+    body{background:#fff;}
+    .hero,.actions,.previewWrap{display:none !important;}
+    .card{border:none;background:#fff;}
+    .paper{border:none;padding:0;}
+    .wrap{max-width:none;padding:0;}
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>Stability Self-Check</h1>
+    <p class="sub">
+      A short stability check: rate what you did in one pressure moment this week, then download your copy for reference.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="cardHeader">
+      <h2>Stability Self-Check</h2>
+      <div class="small">Select one option per statement.</div>
+    </div>
+
+    <div class="section">
+      <div class="paper" id="paper">
+        <h3>Stability Self-Check</h3>
+        <p class="lead">
+          This check helps you see whether your <b>predictability</b> stays stable when urgency rises.
+          Use it to spot what to practice next — not to judge yourself.
+        </p>
+
+        <div class="anchorBar">
+          <div class="anchorLeft">
+            <div class="anchorLabel">Choose your Anchor (from a previous activity)</div>
+            <select class="anchorSelect" id="anchorSelect">
+              <option value="">Select one…</option>
+              <option>Announce changes early (before they surprise people)</option>
+              <option>Confirm handover outcomes (owner + deadline + next step)</option>
+              <option>Set a clear response time (when you’ll reply or decide)</option>
+              <option>Explain the reason in one sentence (when priorities shift)</option>
+              <option>Restate expectations before reviewing work</option>
+              <option>Clarify authority boundaries when deadlines compress</option>
+            </select>
+            <div class="anchorValue" id="anchorValue" aria-live="polite"></div>
+          </div>
+
+          <div class="anchorNote">
+            <b>How to use this:</b><br>
+            Choose your Anchor → rate the statements → calculate → download your self-check.
+          </div>
+        </div>
+
+        <div class="ratingCard" id="ratingCard">
+          <h4>Behavior Statements (Context Stability)</h4>
+          <p class="hint">Think of one real pressure moment at work this week. Rate each statement based on what happened.</p>
+
+          <div id="statements"></div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px;">
+            <button id="btnCalc" type="button">Calculate</button>
+            <button class="secondary" id="btnResetRatings" type="button">Reset</button>
+            <span class="err" id="err" aria-live="polite"></span>
+          </div>
+
+          <div class="result" id="result">
+            <h4>Results</h4>
+            <div class="kpis" id="kpis"></div>
+
+            <div class="box" id="feedbackBox"></div>
+            <div class="box" id="recommendBox" style="margin-top:12px;background:#fff;border:1px solid #d8deef;"></div>
+
+            <div class="quote" id="quoteBox"></div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <b>Supporting research:</b> Repetition in a consistent context supports habit formation over time (Lally et al., 2009). Trust strengthens through repeated visible behavior (Mayer et al., 1995).
+        </div>
+      </div>
+
+      <div class="previewWrap" id="previewWrap">
+        <p class="previewTitle">Preview (if download is blocked on mobile, long-press the image to Save/Share)</p>
+        <img class="previewImg" id="previewImg" alt="Self-check PNG preview">
+      </div>
+
+      <!-- US LEGAL canvas (8.5 x 14) @150dpi -->
+      <canvas id="canvas" width="1275" height="2100" style="display:none;" aria-hidden="true"></canvas>
+    </div>
+
+    <div class="actions">
+      <button id="btnDownload" type="button">Download Self-Check (PNG) — Legal</button>
+      <button class="secondary" id="btnPrint" type="button">Print</button>
+      <button class="secondary" id="btnResetAll" type="button">Reset All</button>
+      <div class="small" style="margin-left:auto;max-width:460px;">
+        Tip: If Print is blocked in aNewSpring, use <b>Download Self-Check (PNG)</b>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Statements (7) ---------- */
+var STATEMENTS = [
+  "During at least one pressure moment this week, I explained my reasoning before announcing the decision.",
+  "When urgency increased, I maintained the same performance standards rather than tightening them silently.",
+  "I clarified authority boundaries instead of pulling decisions back without explanation.",
+  "I avoided shortening explanations simply because time felt limited.",
+  "I communicated changes early rather than after decisions were already finalized.",
+  "In at least one tense situation, I intentionally applied my Pressure Anchor.",
+  "My tone remained steady and controlled, even when urgency increased."
+];
+
+/* Labels shown to learner (numbers hidden) */
+var SCALE_LABELS = [
+  "Did not happen",
+  "Rarely happened",
+  "Happened sometimes",
+  "Happened consistently",
+  "Happened every time under pressure"
+];
+
+function $(id){ return document.getElementById(id); }
+function escapeHtml(s){
+  return String(s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+function getAnchorFromUrl(){
+  try{
+    var p = new URLSearchParams(location.search);
+    var a = p.get("anchor");
+    return a ? decodeURIComponent(a) : "";
+  }catch(e){
+    return "";
+  }
+}
+function setAnchorValue(text){
+  var out = $("anchorValue");
+  if(!out) return;
+  if(text){
+    out.innerHTML = 'Chosen Anchor: <span class="chosen"><b>' + escapeHtml(text) + '</b></span>';
+  } else {
+    out.innerHTML = "";
+  }
+}
+
+/* ---------- Render Statements (labels shown, values stored as 1..5) ---------- */
+function renderStatements(){
+  var wrap = $("statements");
+  if(!wrap){ console.log("Missing #statements container"); return; }
+
+  var html = "";
+  for(var i=0;i<STATEMENTS.length;i++){
+    var n = i+1;
+    var name = "s" + n;
+
+    html += '<div class="stmt">';
+    html += '  <div class="stmtTop">';
+    html += '    <span class="stmtNum">Statement ' + n + '</span>';
+    html += '    <p class="stmtText">' + escapeHtml(STATEMENTS[i]) + '</p>';
+    html += '  </div>';
+    html += '  <div class="chips" aria-label="Rating options">';
+    for(var v=1; v<=5; v++){
+      html += '    <label>';
+      html += '      <input type="radio" name="' + name + '" value="' + v + '">';
+      html += '      <div class="chip">' + escapeHtml(SCALE_LABELS[v-1]) + '</div>';
+      html += '    </label>';
+    }
+    html += '  </div>';
+    html += '</div>';
+  }
+
+  wrap.innerHTML = html;
+}
+
+/* ---------- Scoring (internal thresholds not displayed) ---------- */
+function getRatings(){
+  var ratings = [];
+  for(var i=1;i<=STATEMENTS.length;i++){
+    var sel = document.querySelector('input[name="s' + i + '"]:checked');
+    if(!sel) return { ok:false, missing:i };
+    ratings.push(Number(sel.value));
+  }
+  return { ok:true, ratings:ratings };
+}
+function classify(total){
+  if(total >= 28) return { key:"high", label:"Stability forming" };
+  if(total >= 20) return { key:"mid",  label:"Partial consistency" };
+  return { key:"low", label:"Needs reinforcement" };
+}
+function feedback(total){
+  var c = classify(total);
+  if(c.key === "high"){
+    return { badge:"high",
+      title:"You showed visible consistency under pressure.",
+      body:"Keep repeating your Anchor so the behavior becomes more automatic. Aim for the same clarity when urgency rises."
+    };
+  }
+  if(c.key === "mid"){
+    return { badge:"mid",
+      title:"You showed predictability sometimes — but not consistently yet.",
+      body:"That’s normal at this stage. Choose one statement you rated 3 or below and focus only on that next week."
+    };
+  }
+  return { badge:"low",
+    title:"Pressure may still be overriding clarity.",
+    body:"This is not failure. It simply means your Anchor needs reinforcement. Repeat it deliberately for another week before you add anything new."
+  };
+}
+function recommendation(ratings){
+  var min = Math.min.apply(null, ratings);
+  var idx = ratings.indexOf(min);
+  var map = [
+    { area:"Explain reasoning (one sentence)", practice:"Review the lesson on decision transparency. Practice: state the reason in one clear sentence before the decision." },
+    { area:"Keep standards consistent", practice:"Review the lesson on stable standards under pressure. Practice: restate the standard before you review or correct work." },
+    { area:"Clarify authority boundaries", practice:"Review the lesson on delegation + authority boundaries. Practice: name who decides what (and by when) during urgency." },
+    { area:"Do not shorten explanations", practice:"Review the lesson on predictability shifts. Practice: add a quick ‘why’ sentence even when time feels limited." },
+    { area:"Announce changes early", practice:"Review the lesson on early change signaling. Practice: flag changes as soon as you know them, even if details come later." },
+    { area:"Apply your Pressure Anchor", practice:"Review the Anchor activity. Practice: use the Anchor once in the next pressure moment — then log what happened." },
+    { area:"Keep tone steady", practice:"Review the lesson on stability under pressure. Practice: slow your first response and speak in a controlled, even tone." }
+  ];
+  return { min:min, idx:idx, area:map[idx].area, practice:map[idx].practice };
+}
+function renderResult(total, ratings){
+  $("result").style.display = "block";
+  var max = 35;
+  var pct = Math.round((total/max)*100);
+  var c = classify(total);
+  var fb = feedback(total);
+  var rec = recommendation(ratings);
+
+  $("kpis").innerHTML =
+    '<div class="kpi">' +
+      '<div class="val">' + total + ' / ' + max + '</div>' +
+      '<div class="meta">Total score</div>' +
+      '<div class="badge ' + fb.badge + '">' + c.label + '</div>' +
+    '</div>' +
+    '<div class="kpi">' +
+      '<div class="val">' + pct + '%</div>' +
+      '<div class="meta">Consistency indicator</div>' +
+      '<div class="badge">Your selections saved</div>' +
+    '</div>';
+
+  $("feedbackBox").innerHTML =
+    '<b>' + escapeHtml(fb.title) + '</b><br><br>' + escapeHtml(fb.body);
+
+  $("recommendBox").innerHTML =
+    '<b>Recommendation:</b> Focus your next practice on <b>' + escapeHtml(rec.area) + '</b>.<br>' +
+    '<span style="color:var(--ink2);">' + escapeHtml(rec.practice) + '</span>';
+
+  $("quoteBox").innerHTML =
+    '<b>Context reminder</b><br>' +
+    '“Trust is built with consistency.” — <b>Lincoln Chafee</b>';
+
+  $("result").scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+/* ---------- PNG Export (US Legal) ---------- */
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function wrapLines(ctx, text, maxWidth){
+  var words = String(text||"").split(/\s+/).filter(Boolean);
+  var lines=[]; var line="";
+  for(var i=0;i<words.length;i++){
+    var w = words[i];
+    var test = line ? line+" "+w : w;
+    if(ctx.measureText(test).width > maxWidth && line){
+      lines.push(line); line=w;
+    } else line=test;
+  }
+  if(line) lines.push(line);
+  return lines;
+}
+function exportPNG(){
+  var got = getRatings();
+  if(!got.ok){
+    $("err").textContent = "Please rate all statements before downloading.";
+    var miss = document.querySelector('input[name="s' + got.missing + '"]');
+    if(miss && miss.closest) miss.closest(".stmt").scrollIntoView({behavior:"smooth", block:"center"});
+    return null;
+  }
+
+  var ratings = got.ratings;
+  var total = ratings.reduce(function(a,b){return a+b;},0);
+  var max=35;
+  var pct = Math.round((total/max)*100);
+  var c = classify(total);
+  var fb = feedback(total);
+  var rec = recommendation(ratings);
+  var anchor = $("anchorSelect").value || getAnchorFromUrl() || "";
+
+  var canvas = $("canvas");
+  var ctx = canvas.getContext("2d");
+  var W = canvas.width, H = canvas.height;
+
+  ctx.fillStyle="#0b1020"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(63,194,194,.12)";
+  ctx.beginPath(); ctx.ellipse(260, 280, 460, 300, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle="rgba(99,248,239,.10)";
+  ctx.beginPath(); ctx.ellipse(W-260, 380, 600, 380, 0, 0, Math.PI*2); ctx.fill();
+
+  var pad=70, safeBottom=120, cardH=H-pad-safeBottom;
+  ctx.fillStyle="#fff"; roundRect(ctx, pad, pad, W-pad*2, cardH, 28); ctx.fill();
+  ctx.strokeStyle="rgba(10,16,32,.12)"; ctx.lineWidth=3; ctx.stroke();
+
+  var x0=pad+54;
+  var innerW=W-(pad*2)-108;
+  var y=pad+92;
+
+  ctx.fillStyle="#0a1020"; ctx.font="900 42px Arial";
+  ctx.fillText("Stability Self-Check", x0, y);
+
+  y+=38; ctx.fillStyle="#1c2440"; ctx.font="600 18px Arial";
+  ctx.fillText("A quick check of predictability during one pressure moment.", x0, y);
+
+  y+=44; ctx.fillStyle="#0a1020"; ctx.font="900 20px Arial";
+  ctx.fillText("Chosen Anchor:", x0, y);
+
+  var ax=x0+170, maxW=innerW-170;
+  var aText=anchor?anchor:"______________________________";
+  ctx.font="900 20px Arial";
+  var aLines=wrapLines(ctx,aText,maxW);
+
+  if(anchor){
+    var t=aLines[0];
+    var tw=ctx.measureText(t).width;
+    ctx.fillStyle="rgba(63,194,194,.16)";
+    ctx.strokeStyle="rgba(63,194,194,.55)";
+    ctx.lineWidth=2;
+    roundRect(ctx, ax-10, y-22, tw+20, 32, 16);
+    ctx.fill(); ctx.stroke();
+  }
+  ctx.fillStyle="#0a1020";
+  for(var i=0;i<Math.min(2,aLines.length);i++){
+    ctx.fillText(aLines[i], ax, y+i*24);
+  }
+  y += (aLines.length>1?40:18);
+
+  y+=10; ctx.strokeStyle="rgba(10,16,32,.18)"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x0+innerW,y); ctx.stroke();
+  y+=26;
+
+  var kW=(innerW-16)/2;
+  function kpiCard(x,title,big,meta,badgeText,badgeClass){
+    ctx.fillStyle="#fff";
+    ctx.strokeStyle="rgba(10,16,32,.14)";
+    ctx.lineWidth=2;
+    roundRect(ctx,x,y,kW,122,18); ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle="#0a1020"; ctx.font="900 18px Arial";
+    ctx.fillText(title,x+16,y+30);
+
+    ctx.font="900 34px Arial";
+    ctx.fillText(big,x+16,y+72);
+
+    ctx.fillStyle="#1c2440"; ctx.font="600 14px Arial";
+    ctx.fillText(meta,x+16,y+98);
+
+    var col = (badgeClass==="high") ? "rgba(126,231,135,.35)"
+            : (badgeClass==="mid")  ? "rgba(255,204,102,.35)"
+            : "rgba(255,107,107,.28)";
+    ctx.fillStyle=col;
+    roundRect(ctx,x+16,y+104,240,30,16); ctx.fill();
+
+    ctx.fillStyle="#0a1020"; ctx.font="900 14px Arial";
+    ctx.fillText(badgeText,x+28,y+124);
+  }
+  kpiCard(x0,"Total", total + " / " + max, "Total score", c.label, fb.badge);
+  kpiCard(x0+kW+16,"Consistency", pct + "%", "Indicator (not a grade)", "Self-check", "mid");
+
+  y+=150;
+
+  ctx.fillStyle="rgba(63,194,194,.10)";
+  ctx.strokeStyle="rgba(63,194,194,.35)";
+  ctx.lineWidth=2;
+  roundRect(ctx,x0,y,innerW,210,18); ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle="#0a1020"; ctx.font="900 18px Arial";
+  ctx.fillText(fb.title, x0+16, y+34);
+
+  ctx.fillStyle="#1c2440"; ctx.font="600 16px Arial";
+  var fLines=wrapLines(ctx,fb.body,innerW-32);
+  var fy=y+64;
+  for(i=0;i<Math.min(6,fLines.length);i++){
+    ctx.fillText(fLines[i], x0+16, fy); fy+=22;
+  }
+  y+=234;
+
+  ctx.fillStyle="#fff";
+  ctx.strokeStyle="rgba(10,16,32,.14)";
+  ctx.lineWidth=2;
+  roundRect(ctx,x0,y,innerW,175,18); ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle="#0a1020"; ctx.font="900 18px Arial";
+  ctx.fillText("Recommendation", x0+16, y+34);
+
+  ctx.fillStyle="#1c2440"; ctx.font="900 16px Arial";
+  ctx.fillText("Focus next on: " + rec.area, x0+16, y+64);
+
+  ctx.font="600 15px Arial";
+  var rLines=wrapLines(ctx,rec.practice,innerW-32);
+  var ry=y+90;
+  for(i=0;i<Math.min(4,rLines.length);i++){
+    ctx.fillText(rLines[i], x0+16, ry); ry+=20;
+  }
+  y+=199;
+
+  ctx.fillStyle="#fff";
+  ctx.strokeStyle="rgba(10,16,32,.14)";
+  ctx.lineWidth=2;
+  roundRect(ctx,x0,y,innerW,90,18); ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle="#0a1020"; ctx.font="900 16px Arial";
+  ctx.fillText("Context reminder", x0+16, y+34);
+
+  ctx.fillStyle="#1c2440"; ctx.font="700 16px Arial";
+  ctx.fillText("“Trust is built with consistency.” — Lincoln Chafee", x0+16, y+62);
+
+  var footerY = pad + cardH - 52;
+  ctx.fillStyle="#1c2440"; ctx.font="600 13px Arial";
+  ctx.fillText("References: Lally et al. (2009). Mayer, Davis & Schoorman (1995).", x0, footerY);
+
+  var url = canvas.toDataURL("image/png");
+  $("previewImg").src = url;
+  $("previewWrap").style.display = "block";
+  return url;
+}
+function downloadPNG(){
+  $("err").textContent = "";
+  var url = exportPNG();
+  if(!url) return;
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "stability-self-check-LEGAL.png";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("DOMContentLoaded", function(){
+  renderStatements();
+
+  var fromUrl = getAnchorFromUrl();
+  if(fromUrl){
+    var opts = $("anchorSelect").options;
+    for(var i=0;i<opts.length;i++){
+      if(opts[i].value === fromUrl){ $("anchorSelect").value = fromUrl; break; }
+    }
+    setAnchorValue(fromUrl);
+  }
+  $("anchorSelect").addEventListener("change", function(){
+    setAnchorValue($("anchorSelect").value);
+  });
+
+  $("btnCalc").addEventListener("click", function(){
+    $("err").textContent = "";
+    var got = getRatings();
+    if(!got.ok){
+      $("err").textContent = "Please rate all statements before calculating.";
+      var miss = document.querySelector('input[name="s' + got.missing + '"]');
+      if(miss && miss.closest) miss.closest(".stmt").scrollIntoView({behavior:"smooth", block:"center"});
+      return;
+    }
+    var total = got.ratings.reduce(function(a,b){return a+b;},0);
+    renderResult(total, got.ratings);
+  });
+
+  $("btnResetRatings").addEventListener("click", function(){
+    var radios = document.querySelectorAll('input[type="radio"]');
+    for(var i=0;i<radios.length;i++) radios[i].checked = false;
+    $("err").textContent = "";
+    $("result").style.display = "none";
+  });
+
+  $("btnDownload").addEventListener("click", downloadPNG);
+  $("btnPrint").addEventListener("click", function(){ window.print(); });
+
+  $("btnResetAll").addEventListener("click", function(){
+    $("anchorSelect").value = "";
+    setAnchorValue("");
+    var radios = document.querySelectorAll('input[type="radio"]');
+    for(var i=0;i<radios.length;i++) radios[i].checked = false;
+    $("err").textContent = "";
+    $("result").style.display = "none";
+    $("previewWrap").style.display = "none";
+    $("previewImg").src = "";
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+});
+</script>
+</body>
+</html>
